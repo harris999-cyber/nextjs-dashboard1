@@ -1,26 +1,32 @@
-// import postgres from 'postgres';
+import postgres from 'postgres';
+import { NextResponse } from 'next/server';
 
-// const sql = postgres(process.env.POSTGRES_URL!, { ssl: 'require' });
+// 使用 POSTGRES_URL_NON_POOLING 避免连接池问题
+const sql = postgres(process.env.POSTGRES_URL_NON_POOLING || process.env.POSTGRES_URL!, {
+  ssl: 'require',
+  max: 1,
+  idle_timeout: 20,
+  connect_timeout: 15,
+});
 
-// async function listInvoices() {
-// 	const data = await sql`
-//     SELECT invoices.amount, customers.name
-//     FROM invoices
-//     JOIN customers ON invoices.customer_id = customers.id
-//     WHERE invoices.amount = 666;
-//   `;
+async function listInvoices() {
+  const data = await sql`
+    SELECT invoices.amount, customers.name
+    FROM invoices
+    JOIN customers ON invoices.customer_id = customers.id
+    WHERE invoices.amount = 666;
+  `;
 
-// 	return data;
-// }
+  return data;
+}
 
 export async function GET() {
-  return Response.json({
-    message:
-      'Uncomment this file and remove this line. You can delete this file when you are finished.',
-  });
-  // try {
-  // 	return Response.json(await listInvoices());
-  // } catch (error) {
-  // 	return Response.json({ error }, { status: 500 });
-  // }
+  try {
+    const result = await listInvoices();
+    return NextResponse.json(result);
+  } catch (error) {
+    console.error('Database error:', error);
+    return NextResponse.json({ error: 'Failed to fetch invoices' }, { status: 500 });
+  }
 }
+
